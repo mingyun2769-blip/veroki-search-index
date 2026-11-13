@@ -1,0 +1,37 @@
+# Rebuilds the public search index from public category listings and
+# publishes it to GitHub Pages. No secrets: only public pages are read.
+name: build-public-index
+on:
+  schedule:
+    - cron: '17 * * * *'   # hourly (GitHub may delay scheduled runs)
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: node build-index.mjs dist
+      - name: Sanity check (refuse to publish a shrunken index)
+        run: node -e "const m=require('./dist/meta.json');if(m.count<8000){console.error('count too low',m.count);process.exit(1)}"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/deploy-pages@v4
