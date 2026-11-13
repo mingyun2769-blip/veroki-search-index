@@ -23,6 +23,8 @@ jobs:
           node-version: '22'
       - run: npm ci
       - run: node build-index.mjs dist
+      - name: Add PWA manifest and icons
+        run: mkdir -p dist/pwa && cp pwa/* dist/pwa/
       - name: Sanity check (refuse to publish a shrunken index)
         run: node -e "const m=require('./dist/meta.json');if(m.count<8000){console.error('count too low',m.count);process.exit(1)}"
       - uses: actions/upload-pages-artifact@v3
