@@ -76,7 +76,9 @@ function discoverMenus(html) {
   return [...menus];
 }
 function categoryConfig(html, menu) {
-  const at = html.indexOf('/ajax/get_shop_list_view.cm');
+  // Match Imweb's widget config call, not other scripts (e.g. the site search script) that mention the URL.
+  const callMatch = html.match(/url\s*:\s*\(\s*['"]\/ajax\/get_shop_list_view\.cm['"]\s*\)/);
+  const at = callMatch ? callMatch.index : -1;
   if (at < 0) { if (parse(html).querySelector('.shop-content,.shop-grid')) throw new Error('Shopping list contract changed: ' + menu); return null; }
   const block = html.slice(at, at + 2600);
   const field = name => block.match(new RegExp('["\']' + name + '["\']\\s*:\\s*["\']([^"\']*)["\']'))?.[1];
