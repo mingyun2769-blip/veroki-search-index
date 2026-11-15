@@ -128,5 +128,17 @@ const index = { schema: 1, format: 'rows-v1', scope: 'public', complete: true, r
 mkdirSync(outDir, { recursive: true });
 const json = JSON.stringify(index);
 writeFileSync(join(outDir, 'public-index.json'), json);
-writeFileSync(join(outDir, 'meta.json'), JSON.stringify({ revision: index.revision, verifiedAt, count: list.length, scopes }));
-console.log(JSON.stringify({ count: list.length, requests, seconds: Math.round((verifiedAt - startedAt) / 1000), bytes: json.length, gzipBytes: gzipSync(json).length, scopes }));
+// Slim v2 (2026-11-15): no cardText (it is title+price repeated), href as menu id when canonical,
+// price as a number, image as suffix of the shared upload prefix. Same products, ~68% smaller.
+const prefixCount = {};
+for (const p of list) { const m = p.image.match(/^(https:\/\/[^/]+\/upload\/[^/]+\/)/); if (m) prefixCount[m[1]] = (prefixCount[m[1]] || 0) + 1; }
+const imgPrefix = (Object.entries(prefixCount).sort((a, b) => b[1] - a[1])[0] || [''])[0];
+const v2rows = list.map((p) => {
+  const menu = p.href.match(/^\/(\d+)\/\?idx=(\d+)$/);
+  return [Number(p.idx), menu && menu[2] === p.idx ? Number(menu[1]) : p.href, p.title, Number(String(p.price).replace(/[^\d]/g, '')), imgPrefix && p.image.startsWith(imgPrefix) ? p.image.slice(imgPrefix.length) : p.image];
+});
+const v2 = { schema: 1, format: 'rows-v2', scope: 'public', complete: true, revision: index.revision, startedAt, verifiedAt, count: v2rows.length, imgPrefix, fields: ['idx', 'menuOrHref', 'title', 'priceKRW', 'img'], rows: v2rows };
+const json2 = JSON.stringify(v2);
+writeFileSync(join(outDir, 'public-index-v2.json'), json2);
+writeFileSync(join(outDir, 'meta.json'), JSON.stringify({ revision: index.revision, verifiedAt, count: list.length, scopes, files: ['public-index.json', 'public-index-v2.json'] }));
+console.log(JSON.stringify({ count: list.length, requests, seconds: Math.round((verifiedAt - startedAt) / 1000), bytes: json.length, gzipBytes: gzipSync(json).length, v2Bytes: json2.length, v2Gzip: gzipSync(json2).length, scopes }));
