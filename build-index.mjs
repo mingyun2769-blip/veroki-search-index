@@ -140,5 +140,10 @@ const v2rows = list.map((p) => {
 const v2 = { schema: 1, format: 'rows-v2', scope: 'public', complete: true, revision: index.revision, startedAt, verifiedAt, count: v2rows.length, imgPrefix, fields: ['idx', 'menuOrHref', 'title', 'priceKRW', 'img'], rows: v2rows };
 const json2 = JSON.stringify(v2);
 writeFileSync(join(outDir, 'public-index-v2.json'), json2);
-writeFileSync(join(outDir, 'meta.json'), JSON.stringify({ revision: index.revision, verifiedAt, count: list.length, scopes, files: ['public-index.json', 'public-index-v2.json'] }));
+// Supplemental product sitemap (2026-11-15): public products only, same URL form as Imweb's own sitemap.
+// Referenced from verokimall.shop/robots.txt (cross-host sitemaps are accepted via robots.txt).
+const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+  list.map((p) => `<url><loc>${SITE}/shop_view/${p.idx}</loc></url>`).join('\n') + '\n</urlset>\n';
+writeFileSync(join(outDir, 'products-sitemap.xml'), sitemap);
+writeFileSync(join(outDir, 'meta.json'), JSON.stringify({ revision: index.revision, verifiedAt, count: list.length, scopes, files: ['public-index.json', 'public-index-v2.json', 'products-sitemap.xml'] }));
 console.log(JSON.stringify({ count: list.length, requests, seconds: Math.round((verifiedAt - startedAt) / 1000), bytes: json.length, gzipBytes: gzipSync(json).length, v2Bytes: json2.length, v2Gzip: gzipSync(json2).length, scopes }));
